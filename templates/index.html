@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <a class="brand" href="{{ url_for('index') }}">🎓 Student<span>Hub</span></a>
+        <p class="menu-label">WORKSPACE</p>
+        <a class="nav-link active" href="#overview">▦ <span>Dashboard</span></a>
+        <a class="nav-link" href="#registration">＋ <span>Add Student</span></a>
+        <a class="nav-link" href="#records">♙ <span>Student Records</span></a>
+        <p class="menu-label">TOOLS</p>
+        <a class="nav-link" href="#analytics">▥ <span>Course Analytics</span></a>
+        <div class="sidebar-bottom">Student Management<br><small>Flask · SQLite</small></div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar" id="overview">
+            <div>
+                <p class="eyebrow">OVERVIEW</p>
+                <h1>Dashboard</h1>
+                <p class="subtitle">Manage student information in one place.</p>
+            </div>
+            <div class="admin-pill"><span class="avatar">A</span> Administrator</div>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <section class="stats-grid">
+            <article class="stat-card">
+                <div class="stat-icon blue">♙</div>
+                <p>Total Students</p>
+                <h2>{{ total_students }}</h2>
+                <small>Registered student records</small>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon purple">▤</div>
+                <p>Courses Represented</p>
+                <h2>{{ course_count }}</h2>
+                <small>Courses with registrations</small>
+            </article>
+            <article class="stat-card">
+                <div class="stat-icon green">＋</div>
+                <p>Available Courses</p>
+                <h2>5</h2>
+                <small>Courses in the registration form</small>
+            </article>
+        </section>
+
+        <section class="panel" id="registration">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">STUDENT ENROLMENT</p>
+                    <h2>Register New Student</h2>
+                </div>
+                <span class="step-tag">NEW RECORD</span>
+            </div>
+
+            <form action="{{ url_for('add_student') }}" method="POST" class="student-form" id="studentForm">
+                <div class="field">
+                    <label for="name">Student Name</label>
+                    <input id="name" name="name" type="text" placeholder="Enter full name" required maxlength="100">
+                </div>
+                <div class="field">
+                    <label for="email">Email Address</label>
+                    <input id="email" name="email" type="email" placeholder="name@example.com" required maxlength="150">
+                </div>
+                <div class="field">
+                    <label for="phone">Phone Number</label>
+                    <input id="phone" name="phone" type="tel" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+                </div>
+                <div class="field">
+                    <label for="course">Course</label>
+                    <select id="course" name="course" required>
+                        <option value="">Select course</option>
+                        <option>Data Science</option>
+                        <option>Computer Science</option>
+                        <option>BCA</option>
+                        <option>BBA</option>
+                        <option>MCA</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="year">Academic Year</label>
+                    <select id="year" name="year" required>
+                        <option value="">Select year</option>
+                        <option>1st Year</option>
+                        <option>2nd Year</option>
+                        <option>3rd Year</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender" required>
+                        <option value="">Select gender</option>
+                        <option>Male</option>
+                        <option>Female</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button class="primary-btn" type="submit">＋ Register Student</button>
+                    <button class="secondary-btn" type="reset">Clear Form</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="panel" id="records">
+            <div class="section-heading records-heading">
+                <div>
+                    <p class="eyebrow">DATABASE</p>
+                    <h2>Registered Students</h2>
+                    <p class="subtitle">Search, review, edit or remove student records.</p>
+                </div>
+                <a class="export-btn" href="{{ url_for('students_api') }}" target="_blank">View JSON ↗</a>
+            </div>
+
+            <div class="table-tools">
+                <input id="searchInput" type="search" placeholder="⌕  Search name, email or phone...">
+                <select id="courseFilter">
+                    <option value="">All Courses</option>
+                    <option>Data Science</option>
+                    <option>Computer Science</option>
+                    <option>BCA</option>
+                    <option>BBA</option>
+                    <option>MCA</option>
+                </select>
+                <span class="result-count" id="resultCount">{{ students|length }} records</span>
+            </div>
+
+            <div class="table-wrap">
+                <table id="studentsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>STUDENT</th><th>EMAIL</th>
+                            <th>PHONE</th><th>COURSE</th><th>YEAR</th><th>STATUS</th><th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for student in students %}
+                        <tr>
+                            <td>#{{ student.id }}</td>
+                            <td><strong>{{ student.name }}</strong></td>
+                            <td>{{ student.email }}</td>
+                            <td>{{ student.phone }}</td>
+                            <td><span class="course-chip">{{ student.course }}</span></td>
+                            <td>{{ student.year }}</td>
+                            <td><span class="active-chip">Active</span></td>
+                            <td class="actions">
+                                <button type="button" class="edit-btn"
+                                    onclick="openEditModal({{ student.id }}, {{ student.name|tojson }}, {{ student.email|tojson }}, {{ student.phone|tojson }}, {{ student.course|tojson }}, {{ student.year|tojson }}, {{ student.gender|tojson }})">Edit</button>
+                                <form action="{{ url_for('delete_student', student_id=student.id) }}" method="POST" onsubmit="return confirm('Delete this student record?')">
+                                    <button class="delete-btn" type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr id="emptyRow"><td colspan="8" class="empty-state">No students registered yet. Add your first student above.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel analytics-panel" id="analytics">
+            <div class="section-heading">
+                <div><p class="eyebrow">INSIGHTS</p><h2>Course Analytics</h2></div>
+            </div>
+            {% if course_stats %}
+                <div class="course-bars">
+                {% for item in course_stats %}
+                    <div class="bar-row">
+                        <span>{{ item.course }}</span>
+                        <div class="bar-track"><div class="bar-fill" style="width: {{ (item.total / total_students * 100) if total_students else 0 }}%"></div></div>
+                        <strong>{{ item.total }}</strong>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">Course analytics will appear after students are registered.</p>
+            {% endif %}
+        </section>
+        <footer>StudentHub · Student Management System</footer>
+    </main>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-backdrop" id="editModal" hidden>
+    <div class="modal">
+        <div class="section-heading">
+            <div><p class="eyebrow">UPDATE RECORD</p><h2>Edit Student</h2></div>
+            <button type="button" class="close-btn" onclick="closeEditModal()">×</button>
+        </div>
+        <form id="editForm" method="POST">
+            <div class="modal-grid">
+                <div class="field"><label for="editName">Student Name</label><input id="editName" name="name" required></div>
+                <div class="field"><label for="editEmail">Email</label><input id="editEmail" name="email" type="email" required></div>
+                <div class="field"><label for="editPhone">Phone</label><input id="editPhone" name="phone" pattern="[0-9]{10}" maxlength="10" required></div>
+                <div class="field"><label for="editCourse">Course</label>
+                    <select id="editCourse" name="course" required>
+                        <option>Data Science</option><option>Computer Science</option><option>BCA</option><option>BBA</option><option>MCA</option>
+                    </select>
+                </div>
+                <div class="field"><label for="editYear">Academic Year</label>
+                    <select id="editYear" name="year" required><option>1st Year</option><option>2nd Year</option><option>3rd Year</option></select>
+                </div>
+                <div class="field"><label for="editGender">Gender</label>
+                    <select id="editGender" name="gender" required><option>Male</option><option>Female</option><option>Other</option></select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="primary-btn" type="submit">Save Changes</button>
+                <button class="secondary-btn" type="button" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const searchInput = document.getElementById("searchInput");
+const courseFilter = document.getElementById("courseFilter");
+
+function filterStudents() {
+    const query = searchInput.value.toLowerCase().trim();
+    const course = courseFilter.value;
+    const rows = document.querySelectorAll("#studentsTable tbody tr:not(#emptyRow)");
+    let visible = 0;
+
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const matchesText = text.includes(query);
+        const matchesCourse = !course || row.cells[4].innerText.trim() === course;
+        const show = matchesText && matchesCourse;
+        row.style.display = show ? "" : "none";
+        if (show) visible++;
+    });
+
+    document.getElementById("resultCount").textContent = visible + " records";
+}
+
+searchInput.addEventListener("input", filterStudents);
+courseFilter.addEventListener("change", filterStudents);
+
+function openEditModal(id, name, email, phone, course, year, gender) {
+    document.getElementById("editForm").action = "/edit/" + id;
+    document.getElementById("editName").value = name;
+    document.getElementById("editEmail").value = email;
+    document.getElementById("editPhone").value = phone;
+    document.getElementById("editCourse").value = course;
+    document.getElementById("editYear").value = year;
+    document.getElementById("editGender").value = gender;
+    document.getElementById("editModal").hidden = false;
+}
+
+function closeEditModal() {
+    document.getElementById("editModal").hidden = true;
+}
+
+document.getElementById("editModal").addEventListener("click", function(event) {
+    if (event.target === this) closeEditModal();
+});
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") closeEditModal();
+});
+</script>
+</body>
+</html>
